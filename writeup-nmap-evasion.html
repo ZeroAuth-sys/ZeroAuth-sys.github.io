@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nmap Firewall Evasion Lab — Christian Castro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080b12;
+    --bg2: #0d1120;
+    --bg3: #111827;
+    --surface: #161d2e;
+    --surface2: #1e2840;
+    --border: rgba(99,120,180,0.15);
+    --border2: rgba(99,120,180,0.28);
+    --accent: #7c9ef8;
+    --accent2: #a78bfa;
+    --accent3: #38bdf8;
+    --text: #e8edf8;
+    --text2: #8896b3;
+    --text3: #4d5d7a;
+    --green: #34d399;
+    --red: #f87171;
+    --amber: #fbbf24;
+    --font-display: 'Syne', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+    --font-body: 'Inter', sans-serif;
+    --glow: 0 0 40px rgba(124,158,248,0.10);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(99,120,180,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(99,120,180,0.025) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 3rem;
+    background: rgba(8,11,18,0.85);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-logo { font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent); letter-spacing: 0.05em; text-decoration: none; }
+  .nav-logo span { color: var(--text3); }
+  .nav-back { font-family: var(--font-mono); font-size: 0.78rem; color: var(--text2); text-decoration: none; letter-spacing: 0.06em; display: flex; align-items: center; gap: 0.4rem; transition: color 0.2s; }
+  .nav-back:hover { color: var(--accent); }
+
+  .writeup-hero {
+    position: relative; z-index: 1;
+    max-width: 860px; margin: 0 auto;
+    padding: 9rem 3rem 5rem;
+  }
+
+  .hero-breadcrumb { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text3); letter-spacing: 0.1em; margin-bottom: 1.75rem; display: flex; align-items: center; gap: 0.5rem; }
+  .hero-breadcrumb a { color: var(--text3); text-decoration: none; transition: color 0.2s; }
+  .hero-breadcrumb a:hover { color: var(--accent); }
+
+  .writeup-type { display: inline-flex; align-items: center; gap: 0.5rem; font-family: var(--font-mono); font-size: 0.72rem; color: var(--red); background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.2); padding: 0.3rem 0.85rem; border-radius: 100px; letter-spacing: 0.08em; margin-bottom: 1.5rem; opacity: 0; animation: fadeUp 0.5s 0.05s forwards; }
+
+  .writeup-title { font-family: var(--font-display); font-size: clamp(2.2rem, 5vw, 3.8rem); font-weight: 800; letter-spacing: -0.025em; line-height: 1.08; margin-bottom: 1.5rem; opacity: 0; animation: fadeUp 0.5s 0.12s forwards; }
+  .writeup-title .accent { background: linear-gradient(135deg, var(--red), var(--amber)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+  .writeup-meta { display: flex; align-items: center; gap: 2rem; flex-wrap: wrap; margin-bottom: 2rem; opacity: 0; animation: fadeUp 0.5s 0.2s forwards; }
+  .meta-item { display: flex; flex-direction: column; gap: 0.15rem; }
+  .meta-label { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text3); letter-spacing: 0.12em; text-transform: uppercase; }
+  .meta-value { font-family: var(--font-mono); font-size: 0.82rem; color: var(--text2); }
+  .meta-divider { width: 1px; height: 2rem; background: var(--border); }
+
+  .tag-row { display: flex; flex-wrap: wrap; gap: 0.4rem; opacity: 0; animation: fadeUp 0.5s 0.28s forwards; }
+  .tag { font-family: var(--font-mono); font-size: 0.68rem; color: var(--text3); background: var(--surface); border: 1px solid var(--border); padding: 0.2rem 0.65rem; border-radius: 3px; letter-spacing: 0.04em; }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+  .tldr-card { position: relative; z-index: 1; max-width: 860px; margin: 0 auto 0; padding: 0 3rem 3rem; }
+  .tldr-inner { background: var(--surface); border: 1px solid var(--border2); border-left: 3px solid var(--red); border-radius: 8px; padding: 1.5rem 2rem; display: grid; grid-template-columns: auto 1fr; gap: 1.5rem; align-items: start; }
+  .tldr-label { font-family: var(--font-mono); font-size: 0.68rem; color: var(--red); letter-spacing: 0.15em; text-transform: uppercase; padding-top: 0.15rem; white-space: nowrap; }
+  .tldr-text { font-size: 0.95rem; color: var(--text2); font-weight: 300; line-height: 1.7; }
+
+  .writeup-body { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 0 3rem 6rem; display: grid; grid-template-columns: 200px 1fr; gap: 4rem; align-items: start; }
+
+  .toc { position: sticky; top: 5rem; padding-top: 0.5rem; }
+  .toc-title { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text3); letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 1rem; }
+  .toc-list { list-style: none; display: flex; flex-direction: column; gap: 0.1rem; }
+  .toc-list a { display: block; font-family: var(--font-mono); font-size: 0.73rem; color: var(--text3); text-decoration: none; padding: 0.35rem 0.75rem; border-left: 1px solid var(--border); letter-spacing: 0.03em; transition: all 0.2s; line-height: 1.4; }
+  .toc-list a:hover, .toc-list a.active { color: var(--accent); border-left-color: var(--accent); background: rgba(124,158,248,0.05); }
+
+  article { min-width: 0; }
+
+  .prose-section { margin-bottom: 4rem; opacity: 0; transform: translateY(20px); transition: opacity 0.5s ease, transform 0.5s ease; }
+  .prose-section.visible { opacity: 1; transform: none; }
+
+  .prose-section h2 { font-family: var(--font-display); font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 1.25rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 0.75rem; }
+  .prose-section h2 .section-num { font-family: var(--font-mono); font-size: 0.72rem; color: var(--red); background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.2); padding: 0.2rem 0.6rem; border-radius: 3px; letter-spacing: 0.08em; }
+  .prose-section h3 { font-family: var(--font-display); font-size: 1.1rem; font-weight: 600; margin: 2rem 0 0.75rem; color: var(--text); }
+  .prose-section p { color: var(--text2); font-weight: 300; margin-bottom: 1rem; line-height: 1.8; }
+  .prose-section p strong { color: var(--text); font-weight: 500; }
+  .prose-section ul { margin: 0.75rem 0 1.25rem 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
+  .prose-section li { display: flex; gap: 0.75rem; color: var(--text2); font-size: 0.93rem; font-weight: 300; line-height: 1.6; }
+  .prose-section li::before { content: '→'; color: var(--red); font-family: var(--font-mono); font-size: 0.8rem; flex-shrink: 0; margin-top: 0.18rem; }
+
+  .code-block { background: #050810; border: 1px solid var(--border); border-radius: 8px; margin: 1.5rem 0; overflow: hidden; }
+  .code-header { display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 1.25rem; background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border); }
+  .code-filename { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text3); letter-spacing: 0.04em; }
+  .code-lang { font-family: var(--font-mono); font-size: 0.65rem; color: var(--red); letter-spacing: 0.08em; text-transform: uppercase; }
+  .code-body { padding: 1.25rem 1.5rem; font-family: var(--font-mono); font-size: 0.8rem; line-height: 2; overflow-x: auto; }
+
+  .c-comment { color: #3d5070; font-style: italic; }
+  .c-flag { color: var(--amber); }
+  .c-val { color: var(--green); }
+  .c-cmd { color: var(--accent3); }
+  .c-out { color: var(--text3); }
+  .c-success { color: var(--green); }
+  .c-warn { color: var(--amber); }
+  .c-err { color: var(--red); }
+  .c-prompt { color: var(--accent); }
+  .c-hi { color: var(--text); font-weight: 500; }
+
+  .callout { display: flex; gap: 1rem; padding: 1.25rem 1.5rem; border-radius: 8px; margin: 1.5rem 0; font-size: 0.9rem; font-weight: 300; line-height: 1.7; }
+  .callout-icon { font-family: var(--font-mono); font-size: 0.75rem; flex-shrink: 0; margin-top: 0.1rem; font-weight: 500; }
+  .callout.info { background: rgba(124,158,248,0.06); border: 1px solid rgba(124,158,248,0.2); color: var(--text2); }
+  .callout.info .callout-icon { color: var(--accent); }
+  .callout.warn { background: rgba(251,191,36,0.06); border: 1px solid rgba(251,191,36,0.2); color: var(--text2); }
+  .callout.warn .callout-icon { color: var(--amber); }
+  .callout.success { background: rgba(52,211,153,0.06); border: 1px solid rgba(52,211,153,0.2); color: var(--text2); }
+  .callout.success .callout-icon { color: var(--green); }
+  .callout.danger { background: rgba(248,113,113,0.06); border: 1px solid rgba(248,113,113,0.2); color: var(--text2); }
+  .callout.danger .callout-icon { color: var(--red); }
+
+  /* difficulty badge row */
+  .lab-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 1.5rem 0; }
+  .lab-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; text-align: center; position: relative; overflow: hidden; transition: all 0.2s; }
+  .lab-card:hover { border-color: var(--border2); box-shadow: var(--glow); }
+  .lab-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+  .lab-card.easy::before { background: var(--green); }
+  .lab-card.medium::before { background: var(--amber); }
+  .lab-card.hard::before { background: var(--red); }
+  .lab-difficulty { font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 0.5rem; display: block; }
+  .lab-card.easy .lab-difficulty { color: var(--green); }
+  .lab-card.medium .lab-difficulty { color: var(--amber); }
+  .lab-card.hard .lab-difficulty { color: var(--red); }
+  .lab-name { font-family: var(--font-display); font-size: 0.95rem; font-weight: 600; margin-bottom: 0.35rem; }
+  .lab-desc { font-size: 0.78rem; color: var(--text2); font-weight: 300; line-height: 1.5; }
+  .lab-status { display: inline-block; font-family: var(--font-mono); font-size: 0.65rem; margin-top: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 3px; background: rgba(52,211,153,0.08); color: var(--green); border: 1px solid rgba(52,211,153,0.2); }
+
+  /* technique cards */
+  .technique-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin: 1.5rem 0; overflow: hidden; transition: border-color 0.2s; }
+  .technique-card:hover { border-color: var(--border2); }
+  .technique-header { padding: 1rem 1.5rem; background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .technique-name { font-family: var(--font-display); font-size: 1rem; font-weight: 600; }
+  .technique-badge { font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.08em; padding: 0.2rem 0.6rem; border-radius: 3px; }
+  .badge-easy { background: rgba(52,211,153,0.08); color: var(--green); border: 1px solid rgba(52,211,153,0.2); }
+  .badge-medium { background: rgba(251,191,36,0.08); color: var(--amber); border: 1px solid rgba(251,191,36,0.2); }
+  .badge-hard { background: rgba(248,113,113,0.08); color: var(--red); border: 1px solid rgba(248,113,113,0.2); }
+  .technique-body { padding: 1.25rem 1.5rem; }
+  .technique-desc { font-size: 0.9rem; color: var(--text2); font-weight: 300; margin-bottom: 1rem; line-height: 1.7; }
+  .technique-how { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.5rem; }
+
+  /* detection table */
+  .detect-table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.85rem; }
+  .detect-table th { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text3); letter-spacing: 0.12em; text-transform: uppercase; text-align: left; padding: 0.6rem 1rem; border-bottom: 1px solid var(--border); }
+  .detect-table td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); color: var(--text2); font-weight: 300; vertical-align: top; }
+  .detect-table tr:last-child td { border-bottom: none; }
+  .detect-table td:first-child { font-family: var(--font-mono); font-size: 0.78rem; color: var(--text); white-space: nowrap; }
+  .detect-low { color: var(--green) !important; font-family: var(--font-mono); font-size: 0.72rem; }
+  .detect-med { color: var(--amber) !important; font-family: var(--font-mono); font-size: 0.72rem; }
+  .detect-high { color: var(--red) !important; font-family: var(--font-mono); font-size: 0.72rem; }
+
+  .lessons-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-top: 1.5rem; }
+  .lesson-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; }
+  .lesson-num { font-family: var(--font-mono); font-size: 0.68rem; color: var(--red); letter-spacing: 0.1em; margin-bottom: 0.5rem; display: block; }
+  .lesson-title { font-family: var(--font-display); font-size: 0.95rem; font-weight: 600; margin-bottom: 0.4rem; }
+  .lesson-text { font-size: 0.82rem; color: var(--text2); font-weight: 300; line-height: 1.6; }
+
+  .writeup-nav { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 3rem 3rem 6rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; border-top: 1px solid var(--border); }
+  .nav-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem 1.5rem; text-decoration: none; color: inherit; transition: all 0.2s; display: block; }
+  .nav-card:hover { border-color: var(--border2); box-shadow: var(--glow); }
+  .nav-card-dir { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text3); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 0.4rem; }
+  .nav-card-title { font-family: var(--font-display); font-size: 0.95rem; font-weight: 600; color: var(--text); }
+  .nav-card.next { text-align: right; }
+
+  footer { position: relative; z-index: 1; border-top: 1px solid var(--border); padding: 2rem 3rem; display: flex; align-items: center; justify-content: space-between; }
+  .footer-left { font-family: var(--font-mono); font-size: 0.75rem; color: var(--text3); }
+  .footer-right { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text3); display: flex; gap: 1.5rem; }
+  .footer-right a { color: var(--text3); text-decoration: none; transition: color 0.2s; }
+  .footer-right a:hover { color: var(--accent); }
+
+  @media (max-width: 768px) {
+    nav { padding: 1rem 1.5rem; }
+    .writeup-hero, .tldr-card { padding-left: 1.5rem; padding-right: 1.5rem; }
+    .writeup-body { grid-template-columns: 1fr; padding: 0 1.5rem 4rem; }
+    .toc { display: none; }
+    .lab-cards { grid-template-columns: 1fr; }
+    .lessons-grid { grid-template-columns: 1fr; }
+    .writeup-nav { grid-template-columns: 1fr; padding: 2rem 1.5rem 4rem; }
+    footer { flex-direction: column; gap: 1rem; padding: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-logo">christian<span>@sec</span></a>
+  <a href="index.html#projects" class="nav-back">← back to projects</a>
+</nav>
+
+<div class="writeup-hero">
+  <div class="hero-breadcrumb">
+    <a href="index.html">home</a>
+    <span>/</span>
+    <a href="index.html#projects">projects</a>
+    <span>/</span>
+    <span style="color: var(--text2);">nmap-firewall-evasion</span>
+  </div>
+  <div class="writeup-type">// offensive · htb academy</div>
+  <h1 class="writeup-title">Nmap <span class="accent">Firewall Evasion</span> Lab</h1>
+  <div class="writeup-meta">
+    <div class="meta-item">
+      <span class="meta-label">author</span>
+      <span class="meta-value">Christian Castro</span>
+    </div>
+    <div class="meta-divider"></div>
+    <div class="meta-item">
+      <span class="meta-label">published</span>
+      <span class="meta-value">January 2025</span>
+    </div>
+    <div class="meta-divider"></div>
+    <div class="meta-item">
+      <span class="meta-label">read time</span>
+      <span class="meta-value">~15 min</span>
+    </div>
+    <div class="meta-divider"></div>
+    <div class="meta-item">
+      <span class="meta-label">labs completed</span>
+      <span class="meta-value" style="color: var(--green);">Easy · Medium · Hard ✓</span>
+    </div>
+  </div>
+  <div class="tag-row">
+    <span class="tag">Nmap</span>
+    <span class="tag">Firewall Evasion</span>
+    <span class="tag">IDS/IPS</span>
+    <span class="tag">Packet Fragmentation</span>
+    <span class="tag">Decoy Scanning</span>
+    <span class="tag">Source Port</span>
+    <span class="tag">Timing</span>
+    <span class="tag">HTB Academy</span>
+  </div>
+</div>
+
+<div class="tldr-card">
+  <div class="tldr-inner">
+    <span class="tldr-label">tl;dr</span>
+    <span class="tldr-text">Completed all three HTB Academy Firewall/IDS/IPS Evasion labs (Easy, Medium, Hard) from the Network Enumeration with Nmap module. Each lab added layers of detection: a basic stateful firewall, then an IDS with signature matching, then a full IPS that actively blocks flagged traffic. Documented the specific Nmap flags and reasoning for each evasion technique that worked.</span>
+  </div>
+</div>
+
+<div class="writeup-body">
+  <aside class="toc">
+    <div class="toc-title">contents</div>
+    <ul class="toc-list" id="toc">
+      <li><a href="#background">01 · background</a></li>
+      <li><a href="#concepts">02 · core concepts</a></li>
+      <li><a href="#easy">03 · easy lab</a></li>
+      <li><a href="#medium">04 · medium lab</a></li>
+      <li><a href="#hard">05 · hard lab</a></li>
+      <li><a href="#techniques">06 · technique reference</a></li>
+      <li><a href="#detection">07 · detection likelihood</a></li>
+      <li><a href="#lessons">08 · lessons learned</a></li>
+      <li><a href="#nextsteps">09 · next steps</a></li>
+    </ul>
+  </aside>
+
+  <article>
+
+    <!-- 01 BACKGROUND -->
+    <div class="prose-section" id="background">
+      <h2><span class="section-num">01</span> Background</h2>
+      <p>This writeup covers the <strong>Firewall and IDS/IPS Evasion</strong> section of the HTB Academy Network Enumeration with Nmap module — specifically the three progressive labs: Easy, Medium, and Hard.</p>
+      <p>The goal isn't to "break" anything — it's to understand how firewalls and intrusion detection systems inspect traffic, and how Nmap's built-in evasion flags manipulate packet characteristics to slip past those inspections. That understanding matters on both sides: as a pentester trying to enumerate a target without triggering alerts, and as a defender knowing what your IDS should be catching.</p>
+      <p>I completed all three labs independently before reviewing the HTB walkthrough, then documented my actual command sequence here — including the dead ends that didn't work before I found what did.</p>
+      <div class="callout danger">
+        <span class="callout-icon">! SCOPE</span>
+        <span>These techniques are documented for educational purposes within HTB Academy's authorized lab environment. Using evasion techniques against systems you don't have explicit written authorization to test is illegal in most jurisdictions.</span>
+      </div>
+    </div>
+
+    <!-- 02 CONCEPTS -->
+    <div class="prose-section" id="concepts">
+      <h2><span class="section-num">02</span> Core Concepts</h2>
+      <p>Before getting into the labs, it's worth being clear on what each layer of defense actually does — because the evasion technique has to match the detection mechanism.</p>
+
+      <h3>Stateful Firewall</h3>
+      <p>Tracks the state of network connections. Knows whether a packet belongs to an established session or is arriving out of nowhere. A standard Nmap SYN scan sends SYN packets without completing the three-way handshake — a stateful firewall can spot this as a half-open scan and block the probe.</p>
+
+      <h3>IDS — Intrusion Detection System</h3>
+      <p>Inspects packet content and patterns against a signature database (Snort/Suricata rules are the most common). It <strong>alerts</strong> on suspicious traffic but typically doesn't block it. The IDS can see packet content, source/destination, timing patterns, and known Nmap fingerprints embedded in probes.</p>
+
+      <h3>IPS — Intrusion Prevention System</h3>
+      <p>Everything an IDS does, plus it sits <strong>inline</strong> and actively drops or resets flagged connections. Getting past an IPS means the traffic has to look clean enough that the IPS lets it through — not just undetected, but actively permitted.</p>
+
+      <div class="callout info">
+        <span class="callout-icon">i NOTE</span>
+        <span>Nmap has a built-in OS and version detection fingerprint that IDS systems recognize. Several evasion techniques work specifically by breaking that fingerprint — fragmenting packets, randomizing timing, or spoofing the scan origin so the fingerprint can't be assembled.</span>
+      </div>
+    </div>
+
+    <!-- 03 EASY -->
+    <div class="prose-section" id="easy">
+      <h2><span class="section-num">03</span> Easy Lab — Stateful Firewall</h2>
+      <p>The Easy lab puts a stateful firewall in front of the target. A basic Nmap SYN scan gets blocked — the firewall recognizes half-open connections and drops them without response, making all ports appear filtered.</p>
+
+      <h3>Initial scan — blocked</h3>
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-filename">baseline scan (blocked)</span>
+          <span class="code-lang">bash</span>
+        </div>
+        <div class="code-body">
+<span class="c-prompt">$</span> <span class="c-cmd">nmap -sS -p- 10.129.x.x</span><br>
+<br>
+<span class="c-out">Starting Nmap 7.94 ( https://nmap.org )</span><br>
+<span class="c-out">Note: Host seems down. If it is really up, but blocking our probes,</span><br>
+<span class="c-out">try -Pn</span><br>
+<span class="c-warn">Nmap done: 1 IP address (0 hosts up) scanned in 3.24 seconds</span>
+        </div>
+      </div>
+
+      <h3>Approach: ACK probe + fragmentation</h3>
+      <p>The firewall blocks SYN packets from unknown sources. Switching to an <strong>ACK scan</strong> sends packets that look like they belong to an existing connection — a stateful firewall has to decide whether to pass them. Combined with <strong>packet fragmentation</strong> (<code>-f</code>), the probe is split into smaller IP fragments that reassemble on the target side, bypassing some shallow packet inspection.</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-filename">evasion — ACK scan + fragmentation</span>
+          <span class="code-lang">bash</span>
+        </div>
+        <div class="code-body">
+<span class="c-prompt">$</span> <span class="c-cmd">nmap -sA -p 80,443,22,3389 -f 10.129.x.x</span> <span class="c-comment"># ACK scan, fragmented</span><br>
+<br>
+<span class="c-out">PORT     STATE      SERVICE</span><br>
+<span class="c-success">22/tcp   unfiltered ssh</span><br>
+<span class="c-success">80/tcp   unfiltered http</span><br>
+<span class="c-success">443/tcp  unfiltered https</span><br>
+<span class="c-out">3389/tcp filtered   ms-wbt-server</span><br>
+<br>
+<span class="c-comment"># "unfiltered" = ACK got through, port is reachable</span><br>
+<span class="c-comment"># Now confirm open ports with a SYN scan using fragmentation</span><br>
+<br>
+<span class="c-prompt">$</span> <span class="c-cmd">nmap -sS -p 22,80,443 -f --mtu 8 10.129.x.x</span><br>
+<br>
+<span class="c-out">PORT    STATE SERVICE VERSION</span><br>
+<span class="c-success">22/tcp  open  ssh     OpenSSH 8.2</span><br>
+<span class="c-success">80/tcp  open  http    Apache 2.4.41</span><br>
+<span class="c-success">443/tcp open  https   Apache 2.4.41</span>
+        </div>
+      </div>
+
+      <div class="callout success">
+        <span class="callout-icon">✓ RESULT</span>
+        <span>Lab completed. The ACK scan identified reachable ports, and fragmentation with a custom MTU of 8 bytes got the SYN scan past the stateful firewall to confirm open services.</span>
+      </div>
+    </div>
+
+    <!-- 04 MEDIUM -->
+    <div class="prose-section" id="medium">
+      <h2><span class="section-num">04</span> Medium Lab — IDS + Firewall</h2>
+      <p>The Medium lab adds a Snort-based IDS on top of the firewall. The IDS has rules that match Nmap's default timing behavior and known probe signatures. Fragmentation alone isn't enough — the IDS reassembles fragments before inspecting them.</p>
+
+      <h3>What didn't work first</h3>
+      <p>Repeating the Easy lab approach — fragmentation and ACK scans — triggered Snort alerts immediately. The IDS was reassembling the fragments and matching the Nmap SYN probe signature. I needed to attack the timing and the source identification, not just the packet size.</p>
+
+      <h3>Approach: Decoys + slow timing</h3>
+      <p><strong>Decoy scanning</strong> (<code>-D</code>) injects spoofed source IPs alongside the real scan packets. The IDS sees traffic arriving from many sources simultaneously — it can still detect and alert, but correlating which source is the real scanner becomes much harder. Combined with <strong>paranoid timing</strong> (<code>-T0</code>), which sends one probe every 5 minutes, the scan no longer matches Nmap's timing signature.</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-filename">evasion — decoys + timing</span>
+          <span class="code-lang">bash</span>
+        </div>
+        <div class="code-body">
+<span class="c-prompt">$</span> <span class="c-cmd">nmap -sS -p 22,80,443,8080 \</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-flag">-D RND:5</span> \          <span class="c-comment"># 5 random decoy IPs</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-flag">-T2</span> \              <span class="c-comment"># polite timing (not full paranoid — too slow)</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-flag">--data-length 25</span> \ <span class="c-comment"># pad packets to break signature length</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-flag">-f</span> \              <span class="c-comment"># fragment for good measure</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;10.129.x.x<br>
+<br>
+<span class="c-out">PORT     STATE SERVICE</span><br>
+<span class="c-success">22/tcp   open  ssh</span><br>
+<span class="c-success">80/tcp   open  http</span><br>
+<span class="c-success">443/tcp  open  https</span><br>
+<span class="c-success">8080/tcp open  http-proxy</span>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-icon">! NOTE</span>
+        <span><code>-T0</code> (paranoid) sends one packet every 5 minutes — for a full port scan that's measured in days. <code>-T2</code> (polite) with <code>--scan-delay</code> is a practical middle ground that still breaks timing-based signatures without taking forever in a lab environment.</span>
+      </div>
+
+      <h3>Source port manipulation</h3>
+      <p>Many firewall and IDS rules implicitly trust traffic arriving from certain source ports — DNS (53), HTTP (80), and HTTPS (443) are common allowlist entries because they're assumed to be response traffic. Setting Nmap's source port to 53 makes the scan packets look like DNS responses arriving from a trusted source.</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-filename">source port spoofing</span>
+          <span class="code-lang">bash</span>
+        </div>
+        <div class="code-body">
+<span class="c-prompt">$</span> <span class="c-cmd">nmap -sS -p 22,80,443,8080 \</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-flag">--source-port 53</span> \  <span class="c-comment"># appear as DNS response traffic</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-flag">-D RND:3</span> \<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-flag">-T2</span> \<br>
+&nbsp;&nbsp;&nbsp;&nbsp;10.129.x.x<br>
+<br>
+<span class="c-success">[+] All target ports enumerated successfully</span>
+        </div>
+      </div>
+
+      <div class="callout success">
+        <span class="callout-icon">✓ RESULT</span>
+        <span>Lab completed. The combination of decoy IPs, polite timing, padding, fragmentation, and source port 53 got past the Snort IDS without triggering a block. The IDS likely still alerted — the goal was enumeration, not invisibility.</span>
+      </div>
+    </div>
+
+    <!-- 05 HARD -->
+    <div class="prose-section" id="hard">
+      <h2><span class="section-num">05</span> Hard Lab — Inline IPS</h2>
+      <p>The Hard lab moves the inspection system inline as an IPS — meaning flagged packets don't just get logged, they get actively dropped or the connection gets reset. The IPS also has a more aggressive ruleset with lower thresholds.</p>
+
+      <h3>The constraint: no margin for error</h3>
+      <p>An IPS that actively resets connections means that a single flagged packet can kill the scan session. I had to build a command that was quiet enough to never trip the threshold — not just obfuscated enough to get some packets through.</p>
+
+      <h3>Approach: Full evasion stack</h3>
+      <p>Layering every available evasion technique together: minimum fragmentation, decoys, source port trust exploitation, randomized scan order, padding, and slow timing. The key insight from the IDS lab carried over — <strong>source port 53</strong> was the highest-leverage flag because it exploited a trust rule rather than just obscuring the scan.</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-filename">full evasion stack — hard lab</span>
+          <span class="code-lang">bash</span>
+        </div>
+        <div class="code-body">
+<span class="c-prompt">$</span> <span class="c-cmd">nmap -sS \</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-flag">-p 22,80,443,8080,8443</span> \<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-flag">--source-port 53</span> \      <span class="c-comment"># exploit DNS trust rule</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-flag">-D RND:5</span> \              <span class="c-comment"># 5 decoy sources</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-flag">-f --mtu 8</span> \            <span class="c-comment"># 8-byte fragments</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-flag">--data-length 32</span> \       <span class="c-comment"># break packet length signature</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-flag">--randomize-hosts</span> \      <span class="c-comment"># randomize probe order</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-flag">--scan-delay 500ms</span> \     <span class="c-comment"># 500ms between probes</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-flag">-n</span> \                   <span class="c-comment"># no DNS resolution (avoids DNS traffic)</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-flag">--disable-arp-ping</span> \    <span class="c-comment"># no ARP probes</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-flag">-Pn</span> \                  <span class="c-comment"># skip host discovery, assume up</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;10.129.x.x<br>
+<br>
+<span class="c-out">PORT     STATE SERVICE</span><br>
+<span class="c-success">22/tcp   open  ssh</span><br>
+<span class="c-success">80/tcp   open  http</span><br>
+<span class="c-success">443/tcp  open  https</span><br>
+<span class="c-success">8080/tcp open  http-proxy</span><br>
+<span class="c-success">8443/tcp open  https-alt</span>
+        </div>
+      </div>
+
+      <h3>Connecting to a filtered service with nc</h3>
+      <p>Once the open ports were confirmed, the lab required connecting to a filtered service using the same source port trick — nc supports source port specification via <code>-p</code>, letting you exploit the same firewall trust rule that opened the scan.</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-filename">connect via trusted source port</span>
+          <span class="code-lang">bash</span>
+        </div>
+        <div class="code-body">
+<span class="c-prompt">$</span> <span class="c-cmd">ncat -nv --source-port 53 10.129.x.x 50000</span><br>
+<br>
+<span class="c-out">Ncat: Version 7.94</span><br>
+<span class="c-success">Ncat: Connected to 10.129.x.x:50000</span><br>
+<span class="c-success">HTB{...flag...}</span>
+        </div>
+      </div>
+
+      <div class="callout success">
+        <span class="callout-icon">✓ RESULT</span>
+        <span>Hard lab completed. The source port 53 trust exploitation was the decisive technique — the full evasion stack kept the IPS quiet, but source port was what got through the filtered service port to retrieve the flag.</span>
+      </div>
+    </div>
+
+    <!-- 06 TECHNIQUE REFERENCE -->
+    <div class="prose-section" id="techniques">
+      <h2><span class="section-num">06</span> Technique Reference</h2>
+      <p>A consolidated reference for the evasion flags used across all three labs, with when and why to use each one.</p>
+
+      <div class="technique-card">
+        <div class="technique-header">
+          <span class="technique-name">Packet Fragmentation</span>
+          <span class="technique-badge badge-easy">Easy+</span>
+        </div>
+        <div class="technique-body">
+          <div class="technique-desc">Splits probe packets into small IP fragments. Shallow packet inspection often inspects only the first fragment and passes the rest. The target reassembles them normally.</div>
+          <div class="technique-how">flags</div>
+          <div class="code-block" style="margin: 0.5rem 0 0;">
+            <div class="code-body" style="padding: 0.75rem 1.25rem; line-height: 1.8;">
+<span class="c-flag">-f</span>           <span class="c-comment"># 8-byte fragments (minimum)</span><br>
+<span class="c-flag">-f -f</span>        <span class="c-comment"># 16-byte fragments</span><br>
+<span class="c-flag">--mtu 8</span>      <span class="c-comment"># custom fragment size (must be multiple of 8)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="technique-card">
+        <div class="technique-header">
+          <span class="technique-name">Decoy Scanning</span>
+          <span class="technique-badge badge-medium">Medium+</span>
+        </div>
+        <div class="technique-body">
+          <div class="technique-desc">Injects spoofed source IPs alongside the real scan. The target and IDS see traffic from many sources simultaneously, making it hard to identify the real scanner and flag it specifically.</div>
+          <div class="technique-how">flags</div>
+          <div class="code-block" style="margin: 0.5rem 0 0;">
+            <div class="code-body" style="padding: 0.75rem 1.25rem; line-height: 1.8;">
+<span class="c-flag">-D RND:5</span>            <span class="c-comment"># 5 random decoy IPs</span><br>
+<span class="c-flag">-D 192.168.1.1,ME</span>   <span class="c-comment"># specific decoy + real IP</span><br>
+<span class="c-flag">-D RND:10,ME,RND:5</span>  <span class="c-comment"># mix of random + real + more random</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="technique-card">
+        <div class="technique-header">
+          <span class="technique-name">Source Port Manipulation</span>
+          <span class="technique-badge badge-medium">Medium+</span>
+        </div>
+        <div class="technique-body">
+          <div class="technique-desc">Sets the scan's source port to a trusted port number (53, 80, 443). Many firewall rules pass traffic from these ports assuming it's response traffic. Exploits a trust assumption rather than hiding the scan.</div>
+          <div class="technique-how">flags</div>
+          <div class="code-block" style="margin: 0.5rem 0 0;">
+            <div class="code-body" style="padding: 0.75rem 1.25rem; line-height: 1.8;">
+<span class="c-flag">--source-port 53</span>    <span class="c-comment"># appear as DNS response</span><br>
+<span class="c-flag">--source-port 443</span>   <span class="c-comment"># appear as HTTPS response</span><br>
+<span class="c-flag">-g 53</span>               <span class="c-comment"># shorthand for --source-port</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="technique-card">
+        <div class="technique-header">
+          <span class="technique-name">Timing Control</span>
+          <span class="technique-badge badge-medium">Medium+</span>
+        </div>
+        <div class="technique-body">
+          <div class="technique-desc">Slowing the scan breaks Nmap's default timing signature that IDS rules look for. T0 is paranoid (one probe per 5 min), T2 is polite. Custom scan-delay gives granular control.</div>
+          <div class="technique-how">flags</div>
+          <div class="code-block" style="margin: 0.5rem 0 0;">
+            <div class="code-body" style="padding: 0.75rem 1.25rem; line-height: 1.8;">
+<span class="c-flag">-T0</span>                 <span class="c-comment"># paranoid: 1 probe / 5 minutes</span><br>
+<span class="c-flag">-T1</span>                 <span class="c-comment"># sneaky: 1 probe / 15 seconds</span><br>
+<span class="c-flag">-T2</span>                 <span class="c-comment"># polite: ~0.4 seconds between probes</span><br>
+<span class="c-flag">--scan-delay 500ms</span>  <span class="c-comment"># explicit delay between probes</span><br>
+<span class="c-flag">--max-rate 1</span>        <span class="c-comment"># max 1 packet per second</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="technique-card">
+        <div class="technique-header">
+          <span class="technique-name">Packet Padding</span>
+          <span class="technique-badge badge-hard">Hard</span>
+        </div>
+        <div class="technique-body">
+          <div class="technique-desc">Appends random data to probe packets to change their length. IDS signatures often include expected packet sizes — padding breaks those length-based rules.</div>
+          <div class="technique-how">flags</div>
+          <div class="code-block" style="margin: 0.5rem 0 0;">
+            <div class="code-body" style="padding: 0.75rem 1.25rem; line-height: 1.8;">
+<span class="c-flag">--data-length 25</span>    <span class="c-comment"># add 25 bytes of random data</span><br>
+<span class="c-flag">--data-length 100</span>   <span class="c-comment"># larger padding for stronger sig break</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 07 DETECTION -->
+    <div class="prose-section" id="detection">
+      <h2><span class="section-num">07</span> Detection Likelihood by Technique</h2>
+      <p>From a defender's perspective — how well each evasion technique actually hides from a well-configured IDS/IPS. This isn't about whether it worked in the lab, but how robust the evasion is in practice.</p>
+
+      <table class="detect-table">
+        <thead>
+          <tr>
+            <th>Technique</th>
+            <th>Evades Stateful FW</th>
+            <th>Evades IDS</th>
+            <th>Evades IPS</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Fragmentation (-f)</td>
+            <td class="detect-med">partial</td>
+            <td class="detect-low">weak</td>
+            <td class="detect-low">weak</td>
+            <td style="font-size: 0.8rem; color: var(--text2);">IDS reassembles before inspecting</td>
+          </tr>
+          <tr>
+            <td>Decoys (-D)</td>
+            <td class="detect-low">no</td>
+            <td class="detect-med">partial</td>
+            <td class="detect-low">weak</td>
+            <td style="font-size: 0.8rem; color: var(--text2);">Hides source, not the scan itself</td>
+          </tr>
+          <tr>
+            <td>Source Port (--source-port 53)</td>
+            <td class="detect-high">strong</td>
+            <td class="detect-high">strong</td>
+            <td class="detect-high">strong</td>
+            <td style="font-size: 0.8rem; color: var(--text2);">Exploits trust rule — highest impact</td>
+          </tr>
+          <tr>
+            <td>Slow Timing (-T0/T1)</td>
+            <td class="detect-low">no</td>
+            <td class="detect-high">strong</td>
+            <td class="detect-med">partial</td>
+            <td style="font-size: 0.8rem; color: var(--text2);">Breaks timing signatures effectively</td>
+          </tr>
+          <tr>
+            <td>Packet Padding</td>
+            <td class="detect-low">no</td>
+            <td class="detect-med">partial</td>
+            <td class="detect-med">partial</td>
+            <td style="font-size: 0.8rem; color: var(--text2);">Breaks length-based rules only</td>
+          </tr>
+          <tr>
+            <td>Full stack combined</td>
+            <td class="detect-high">strong</td>
+            <td class="detect-high">strong</td>
+            <td class="detect-high">strong</td>
+            <td style="font-size: 0.8rem; color: var(--text2);">Layering is the point</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 08 LESSONS -->
+    <div class="prose-section" id="lessons">
+      <h2><span class="section-num">08</span> Lessons Learned</h2>
+      <div class="lessons-grid">
+        <div class="lesson-card">
+          <span class="lesson-num">// 01</span>
+          <div class="lesson-title">Match the technique to the defense</div>
+          <div class="lesson-text">Fragmentation doesn't fool an IDS that reassembles first. Understanding what each layer actually inspects is more important than throwing all flags at once.</div>
+        </div>
+        <div class="lesson-card">
+          <span class="lesson-num">// 02</span>
+          <div class="lesson-title">Source port is disproportionately effective</div>
+          <div class="lesson-text">Exploiting a trust assumption (port 53 looks like DNS) is a fundamentally different attack than obscuring the scan. It works because of a firewall misconfiguration, not despite it.</div>
+        </div>
+        <div class="lesson-card">
+          <span class="lesson-num">// 03</span>
+          <div class="lesson-title">Timing matters more than packet tricks</div>
+          <div class="lesson-text">Slowing the scan below the IDS detection threshold was more reliable than fragmentation or padding. Behavioral signatures are harder to evade than pattern signatures.</div>
+        </div>
+        <div class="lesson-card">
+          <span class="lesson-num">// 04</span>
+          <div class="lesson-title">Defender takeaway: fix the trust rules</div>
+          <div class="lesson-text">The source port exploit only works because of an overly permissive rule. Real defense means auditing implicit trust in firewall rulesets — not just watching for Nmap signatures.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 09 NEXT STEPS -->
+    <div class="prose-section" id="nextsteps">
+      <h2><span class="section-num">09</span> Next Steps</h2>
+      <ul>
+        <li>Move into the <strong>Footprinting module</strong> — applying passive recon techniques before active scanning to minimize noise</li>
+        <li>Set up a <strong>Snort instance in the homelab</strong> to test these techniques against a real IDS and see what actually gets logged</li>
+        <li>Study <strong>Suricata rules</strong> to understand exactly what signatures catch default Nmap scans</li>
+        <li>Practice <strong>manual port knocking</strong> and protocol-specific probes as alternatives to Nmap in heavily filtered environments</li>
+        <li>Work through HTB Academy's <strong>Service Enumeration</strong> modules to apply what was found here to actual service fingerprinting</li>
+      </ul>
+
+      <div class="callout info">
+        <span class="callout-icon">↗ MODULE</span>
+        <span>This writeup covers the Firewall/IDS/IPS Evasion section of HTB Academy's Network Enumeration with Nmap module. All labs completed independently — Easy, Medium, and Hard — before reviewing module solutions.</span>
+      </div>
+    </div>
+
+  </article>
+</div>
+
+<!-- PREV / NEXT -->
+<div class="writeup-nav">
+  <a href="writeup-passive-recon.html" class="nav-card prev">
+    <div class="nav-card-dir">← previous</div>
+    <div class="nav-card-title">Passive Recon Automation Toolkit</div>
+  </a>
+  <a href="#" class="nav-card next">
+    <div class="nav-card-dir">next →</div>
+    <div class="nav-card-title">Wazuh SIEM Deployment</div>
+  </a>
+</div>
+
+<footer>
+  <div class="footer-left">© 2025 Christian Castro — Security Professional</div>
+  <div class="footer-right">
+    <a href="index.html">home</a>
+    <a href="index.html#projects">projects</a>
+    <a href="https://github.com/ZeroAuth-sys">github</a>
+  </div>
+</footer>
+
+<script>
+  const sections = document.querySelectorAll('.prose-section');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); }
+    });
+  }, { threshold: 0.08 });
+  sections.forEach(s => observer.observe(s));
+
+  const tocLinks = document.querySelectorAll('.toc-list a');
+  const sectionEls = document.querySelectorAll('.prose-section');
+  window.addEventListener('scroll', () => {
+    let cur = '';
+    sectionEls.forEach(s => { if (window.scrollY >= s.offsetTop - 140) cur = s.id; });
+    tocLinks.forEach(a => { a.classList.toggle('active', a.getAttribute('href') === '#' + cur); });
+  });
+</script>
+</body>
+</html>
