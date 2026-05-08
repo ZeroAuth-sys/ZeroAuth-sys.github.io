@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Passive Recon Automation Toolkit — Christian Castro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080b12;
+    --bg2: #0d1120;
+    --bg3: #111827;
+    --surface: #161d2e;
+    --surface2: #1e2840;
+    --border: rgba(99,120,180,0.15);
+    --border2: rgba(99,120,180,0.28);
+    --accent: #7c9ef8;
+    --accent2: #a78bfa;
+    --accent3: #38bdf8;
+    --text: #e8edf8;
+    --text2: #8896b3;
+    --text3: #4d5d7a;
+    --green: #34d399;
+    --red: #f87171;
+    --amber: #fbbf24;
+    --font-display: 'Syne', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+    --font-body: 'Inter', sans-serif;
+    --glow: 0 0 40px rgba(124,158,248,0.10);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(99,120,180,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(99,120,180,0.025) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 3rem;
+    background: rgba(8,11,18,0.85);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-logo {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+    text-decoration: none;
+  }
+  .nav-logo span { color: var(--text3); }
+
+  .nav-back {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--text2);
+    text-decoration: none;
+    letter-spacing: 0.06em;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: color 0.2s;
+  }
+  .nav-back:hover { color: var(--accent); }
+
+  /* ── HERO ── */
+  .writeup-hero {
+    position: relative;
+    z-index: 1;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 9rem 3rem 5rem;
+  }
+
+  .hero-breadcrumb {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--text3);
+    letter-spacing: 0.1em;
+    margin-bottom: 1.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .hero-breadcrumb a { color: var(--text3); text-decoration: none; transition: color 0.2s; }
+  .hero-breadcrumb a:hover { color: var(--accent); }
+  .hero-breadcrumb span { color: var(--text3); }
+
+  .writeup-type {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--accent2);
+    background: rgba(167,139,250,0.08);
+    border: 1px solid rgba(167,139,250,0.2);
+    padding: 0.3rem 0.85rem;
+    border-radius: 100px;
+    letter-spacing: 0.08em;
+    margin-bottom: 1.5rem;
+    opacity: 0;
+    animation: fadeUp 0.5s 0.05s forwards;
+  }
+
+  .writeup-title {
+    font-family: var(--font-display);
+    font-size: clamp(2.2rem, 5vw, 3.8rem);
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    line-height: 1.08;
+    margin-bottom: 1.5rem;
+    opacity: 0;
+    animation: fadeUp 0.5s 0.12s forwards;
+  }
+
+  .writeup-title .accent { 
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .writeup-meta {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+    opacity: 0;
+    animation: fadeUp 0.5s 0.2s forwards;
+  }
+
+  .meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .meta-label {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--text3);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .meta-value {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    color: var(--text2);
+  }
+
+  .meta-divider { width: 1px; height: 2rem; background: var(--border); }
+
+  .tag-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    opacity: 0;
+    animation: fadeUp 0.5s 0.28s forwards;
+  }
+
+  .tag {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--text3);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 0.2rem 0.65rem;
+    border-radius: 3px;
+    letter-spacing: 0.04em;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── TLDR CARD ── */
+  .tldr-card {
+    position: relative;
+    z-index: 1;
+    max-width: 860px;
+    margin: 0 auto 0;
+    padding: 0 3rem 3rem;
+  }
+
+  .tldr-inner {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-left: 3px solid var(--accent);
+    border-radius: 8px;
+    padding: 1.5rem 2rem;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  .tldr-label {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding-top: 0.15rem;
+    white-space: nowrap;
+  }
+
+  .tldr-text {
+    font-size: 0.95rem;
+    color: var(--text2);
+    font-weight: 300;
+    line-height: 1.7;
+  }
+
+  /* ── CONTENT ── */
+  .writeup-body {
+    position: relative;
+    z-index: 1;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 3rem 6rem;
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 4rem;
+    align-items: start;
+  }
+
+  /* Sticky sidebar TOC */
+  .toc {
+    position: sticky;
+    top: 5rem;
+    padding-top: 0.5rem;
+  }
+
+  .toc-title {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--text3);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+
+  .toc-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+
+  .toc-list a {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.73rem;
+    color: var(--text3);
+    text-decoration: none;
+    padding: 0.35rem 0.75rem;
+    border-left: 1px solid var(--border);
+    letter-spacing: 0.03em;
+    transition: all 0.2s;
+    line-height: 1.4;
+  }
+
+  .toc-list a:hover,
+  .toc-list a.active {
+    color: var(--accent);
+    border-left-color: var(--accent);
+    background: rgba(124,158,248,0.05);
+  }
+
+  .toc-list a.sub {
+    padding-left: 1.5rem;
+    font-size: 0.68rem;
+    color: var(--text3);
+  }
+
+  /* ── ARTICLE ── */
+  article { min-width: 0; }
+
+  .prose-section {
+    margin-bottom: 4rem;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+  .prose-section.visible { opacity: 1; transform: none; }
+
+  .prose-section h2 {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .prose-section h2 .section-num {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--accent);
+    background: rgba(124,158,248,0.08);
+    border: 1px solid rgba(124,158,248,0.2);
+    padding: 0.2rem 0.6rem;
+    border-radius: 3px;
+    letter-spacing: 0.08em;
+  }
+
+  .prose-section h3 {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 2rem 0 0.75rem;
+    color: var(--text);
+  }
+
+  .prose-section p {
+    color: var(--text2);
+    font-weight: 300;
+    margin-bottom: 1rem;
+    line-height: 1.8;
+  }
+
+  .prose-section p strong { color: var(--text); font-weight: 500; }
+
+  .prose-section ul {
+    margin: 0.75rem 0 1.25rem 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .prose-section li {
+    display: flex;
+    gap: 0.75rem;
+    color: var(--text2);
+    font-size: 0.93rem;
+    font-weight: 300;
+    line-height: 1.6;
+  }
+
+  .prose-section li::before {
+    content: '→';
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    flex-shrink: 0;
+    margin-top: 0.18rem;
+  }
+
+  /* ── CODE BLOCKS ── */
+  .code-block {
+    background: #050810;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin: 1.5rem 0;
+    overflow: hidden;
+  }
+
+  .code-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.65rem 1.25rem;
+    background: rgba(255,255,255,0.02);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .code-filename {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--text3);
+    letter-spacing: 0.04em;
+  }
+
+  .code-lang {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--accent2);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .code-body {
+    padding: 1.25rem 1.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    line-height: 2;
+    overflow-x: auto;
+  }
+
+  .c-comment { color: #3d5070; font-style: italic; }
+  .c-key { color: var(--accent2); }
+  .c-str { color: var(--green); }
+  .c-fn { color: var(--accent); }
+  .c-num { color: var(--amber); }
+  .c-var { color: var(--accent3); }
+  .c-kw { color: var(--red); }
+  .c-out { color: var(--text3); }
+  .c-success { color: var(--green); }
+  .c-warn { color: var(--amber); }
+  .c-prompt { color: var(--accent); }
+
+  /* ── CALLOUTS ── */
+  .callout {
+    display: flex;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    border-radius: 8px;
+    margin: 1.5rem 0;
+    font-size: 0.9rem;
+    font-weight: 300;
+    line-height: 1.7;
+  }
+
+  .callout-icon {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+    font-weight: 500;
+  }
+
+  .callout.info {
+    background: rgba(124,158,248,0.06);
+    border: 1px solid rgba(124,158,248,0.2);
+    color: var(--text2);
+  }
+  .callout.info .callout-icon { color: var(--accent); }
+
+  .callout.warn {
+    background: rgba(251,191,36,0.06);
+    border: 1px solid rgba(251,191,36,0.2);
+    color: var(--text2);
+  }
+  .callout.warn .callout-icon { color: var(--amber); }
+
+  .callout.success {
+    background: rgba(52,211,153,0.06);
+    border: 1px solid rgba(52,211,153,0.2);
+    color: var(--text2);
+  }
+  .callout.success .callout-icon { color: var(--green); }
+
+  /* ── FLOW DIAGRAM ── */
+  .flow-diagram {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin: 1.75rem 0;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+  }
+
+  .flow-step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    text-align: center;
+    flex-shrink: 0;
+    min-width: 110px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .flow-step:hover {
+    border-color: var(--border2);
+    box-shadow: var(--glow);
+  }
+
+  .flow-step-icon {
+    font-family: var(--font-mono);
+    font-size: 1.2rem;
+    display: block;
+    margin-bottom: 0.4rem;
+    color: var(--accent);
+  }
+
+  .flow-step-name {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--text2);
+    display: block;
+    line-height: 1.4;
+  }
+
+  .flow-step-sub {
+    font-size: 0.65rem;
+    color: var(--text3);
+    display: block;
+    margin-top: 0.2rem;
+    font-family: var(--font-mono);
+  }
+
+  .flow-arrow {
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    color: var(--text3);
+    padding: 0 0.4rem;
+    flex-shrink: 0;
+  }
+
+  /* ── SOURCE CARDS ── */
+  .source-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin: 1.5rem 0;
+  }
+
+  .source-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .source-card:hover {
+    border-color: var(--border2);
+    box-shadow: var(--glow);
+  }
+
+  .source-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .source-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .source-name {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .source-desc {
+    font-size: 0.82rem;
+    color: var(--text2);
+    font-weight: 300;
+    line-height: 1.5;
+  }
+
+  .source-output {
+    margin-top: 0.75rem;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--text3);
+    background: var(--bg3);
+    padding: 0.4rem 0.75rem;
+    border-radius: 4px;
+  }
+
+  /* ── RESULTS TABLE ── */
+  .results-block {
+    background: #050810;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 1.5rem 0;
+  }
+
+  .results-header {
+    padding: 0.65rem 1.25rem;
+    background: rgba(255,255,255,0.02);
+    border-bottom: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--text3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .results-body {
+    padding: 1rem 1.25rem;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    line-height: 1.9;
+  }
+
+  .r-line { display: flex; gap: 1rem; }
+  .r-key { color: var(--text3); min-width: 160px; flex-shrink: 0; }
+  .r-val { color: var(--text2); }
+  .r-val.good { color: var(--green); }
+  .r-val.warn { color: var(--amber); }
+  .r-val.count { color: var(--accent); }
+
+  /* ── LESSONS ── */
+  .lessons-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+
+  .lesson-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem;
+  }
+
+  .lesson-num {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
+    display: block;
+  }
+
+  .lesson-title {
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+  }
+
+  .lesson-text {
+    font-size: 0.82rem;
+    color: var(--text2);
+    font-weight: 300;
+    line-height: 1.6;
+  }
+
+  /* ── NEXT / PREV ── */
+  .writeup-nav {
+    position: relative;
+    z-index: 1;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 3rem 6rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+    border-top: 1px solid var(--border);
+    padding-top: 3rem;
+  }
+
+  .nav-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.2s;
+    display: block;
+  }
+
+  .nav-card:hover {
+    border-color: var(--border2);
+    box-shadow: var(--glow);
+  }
+
+  .nav-card-dir {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--text3);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 0.4rem;
+  }
+
+  .nav-card-title {
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .nav-card.next { text-align: right; }
+
+  /* ── FOOTER ── */
+  footer {
+    position: relative;
+    z-index: 1;
+    border-top: 1px solid var(--border);
+    padding: 2rem 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .footer-left { font-family: var(--font-mono); font-size: 0.75rem; color: var(--text3); }
+  .footer-right { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text3); display: flex; gap: 1.5rem; }
+  .footer-right a { color: var(--text3); text-decoration: none; transition: color 0.2s; }
+  .footer-right a:hover { color: var(--accent); }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    nav { padding: 1rem 1.5rem; }
+    .writeup-hero, .tldr-card { padding-left: 1.5rem; padding-right: 1.5rem; }
+    .writeup-body { grid-template-columns: 1fr; padding: 0 1.5rem 4rem; }
+    .toc { display: none; }
+    .source-grid, .lessons-grid { grid-template-columns: 1fr; }
+    .writeup-nav { grid-template-columns: 1fr; padding: 2rem 1.5rem 4rem; }
+    .flow-diagram { gap: 0; }
+    footer { flex-direction: column; gap: 1rem; padding: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="index.html" class="nav-logo">christian<span>@sec</span></a>
+  <a href="index.html#projects" class="nav-back">← back to projects</a>
+</nav>
+
+<!-- HERO -->
+<div class="writeup-hero">
+  <div class="hero-breadcrumb">
+    <a href="index.html">home</a>
+    <span>/</span>
+    <a href="index.html#projects">projects</a>
+    <span>/</span>
+    <span style="color: var(--text2);">passive-recon-toolkit</span>
+  </div>
+  <div class="writeup-type">// tooling</div>
+  <h1 class="writeup-title">Passive Recon <span class="accent">Automation</span> Toolkit</h1>
+  <div class="writeup-meta">
+    <div class="meta-item">
+      <span class="meta-label">author</span>
+      <span class="meta-value">Christian Castro</span>
+    </div>
+    <div class="meta-divider"></div>
+    <div class="meta-item">
+      <span class="meta-label">published</span>
+      <span class="meta-value">November 2024</span>
+    </div>
+    <div class="meta-divider"></div>
+    <div class="meta-item">
+      <span class="meta-label">read time</span>
+      <span class="meta-value">~12 min</span>
+    </div>
+    <div class="meta-divider"></div>
+    <div class="meta-item">
+      <span class="meta-label">difficulty</span>
+      <span class="meta-value" style="color: var(--amber);">intermediate</span>
+    </div>
+  </div>
+  <div class="tag-row">
+    <span class="tag">Python</span>
+    <span class="tag">Shodan API</span>
+    <span class="tag">crt.sh</span>
+    <span class="tag">GrayHatWarfare</span>
+    <span class="tag">OSINT</span>
+    <span class="tag">Automation</span>
+    <span class="tag">HTML Report</span>
+    <span class="tag">Cronjob</span>
+  </div>
+</div>
+
+<!-- TLDR -->
+<div class="tldr-card">
+  <div class="tldr-inner">
+    <span class="tldr-label">tl;dr</span>
+    <span class="tldr-text">I built a Python pipeline that chains together crt.sh, Shodan, GrayHatWarfare, and LinkedIn/GitHub OSINT to automate passive reconnaissance on a target domain. Output is a self-contained dark-themed HTML report, and the whole thing runs on a cronjob for continuous monitoring — no active probing, no footprint on the target.</span>
+  </div>
+</div>
+
+<!-- BODY -->
+<div class="writeup-body">
+
+  <!-- TOC -->
+  <aside class="toc">
+    <div class="toc-title">contents</div>
+    <ul class="toc-list" id="toc">
+      <li><a href="#background" class="active">01 · background</a></li>
+      <li><a href="#objectives">02 · objectives</a></li>
+      <li><a href="#architecture">03 · architecture</a></li>
+      <li><a href="#sources">04 · data sources</a></li>
+      <li><a href="#implementation">05 · implementation</a></li>
+      <li><a href="#report">06 · html report</a></li>
+      <li><a href="#scheduling">07 · scheduling</a></li>
+      <li><a href="#results">08 · results</a></li>
+      <li><a href="#lessons">09 · lessons learned</a></li>
+      <li><a href="#nextsteps">10 · next steps</a></li>
+    </ul>
+  </aside>
+
+  <!-- ARTICLE -->
+  <article>
+
+    <!-- 01 BACKGROUND -->
+    <div class="prose-section" id="background">
+      <h2><span class="section-num">01</span> Background</h2>
+      <p>This project came out of the <strong>Footprinting module in HTB Academy</strong>, specifically the passive reconnaissance section. The module walks through manual use of crt.sh, Shodan, and other OSINT sources — but doing it by hand is slow, inconsistent, and doesn't scale.</p>
+      <p>I wanted a tool that could hit all these sources automatically, deduplicate the results, and spit out a report I could actually read later. The secondary goal was to schedule it as a cronjob so I'd get a weekly snapshot of a target's exposure — useful for tracking changes over time, which matters a lot in real engagements.</p>
+      <p>This is <strong>entirely passive</strong>. No packets sent to the target, no port knocks, no active probing of any kind. Everything is queried from third-party aggregators that have already indexed the target.</p>
+      <div class="callout warn">
+        <span class="callout-icon">! LEGAL</span>
+        <span>Passive recon against a domain you don't own or have explicit permission to test can still have legal implications depending on jurisdiction and how you use the data. Always operate within your authorized scope.</span>
+      </div>
+    </div>
+
+    <!-- 02 OBJECTIVES -->
+    <div class="prose-section" id="objectives">
+      <h2><span class="section-num">02</span> Objectives</h2>
+      <ul>
+        <li>Automate subdomain enumeration via certificate transparency logs (crt.sh)</li>
+        <li>Pull exposed services, ports, and banners from Shodan without touching the target</li>
+        <li>Query GrayHatWarfare for exposed S3 buckets and cloud storage assets</li>
+        <li>Scrape LinkedIn and GitHub for employee names, tech stack hints, and accidental credential leaks</li>
+        <li>Deduplicate and merge all results into a single structured dataset</li>
+        <li>Generate a readable, self-contained HTML report with dark theme</li>
+        <li>Schedule as a cronjob for continuous monitoring with delta highlighting</li>
+      </ul>
+    </div>
+
+    <!-- 03 ARCHITECTURE -->
+    <div class="prose-section" id="architecture">
+      <h2><span class="section-num">03</span> Pipeline Architecture</h2>
+      <p>The tool is structured as a sequential pipeline with a shared data model. Each module writes to a central JSON object, and the report generator reads from that at the end.</p>
+
+      <div class="flow-diagram">
+        <div class="flow-step">
+          <span class="flow-step-icon">⚙</span>
+          <span class="flow-step-name">config.yaml</span>
+          <span class="flow-step-sub">target domain<br>API keys</span>
+        </div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step">
+          <span class="flow-step-icon">🔍</span>
+          <span class="flow-step-name">collectors</span>
+          <span class="flow-step-sub">crt.sh / Shodan<br>GHW / GitHub</span>
+        </div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step">
+          <span class="flow-step-icon">⚡</span>
+          <span class="flow-step-name">processor</span>
+          <span class="flow-step-sub">dedup<br>enrich</span>
+        </div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step">
+          <span class="flow-step-icon">📊</span>
+          <span class="flow-step-name">reporter</span>
+          <span class="flow-step-sub">HTML<br>JSON</span>
+        </div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step">
+          <span class="flow-step-icon">📁</span>
+          <span class="flow-step-name">output/</span>
+          <span class="flow-step-sub">report.html<br>data.json</span>
+        </div>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-filename">project structure</span>
+          <span class="code-lang">bash</span>
+        </div>
+        <div class="code-body">
+<span class="c-var">passive-recon/</span><br>
+├── <span class="c-fn">recon.py</span>          <span class="c-comment"># main entrypoint</span><br>
+├── <span class="c-fn">config.yaml</span>       <span class="c-comment"># target + API key config</span><br>
+├── collectors/<br>
+│   ├── <span class="c-fn">crtsh.py</span>      <span class="c-comment"># certificate transparency</span><br>
+│   ├── <span class="c-fn">shodan.py</span>     <span class="c-comment"># exposed services</span><br>
+│   ├── <span class="c-fn">ghw.py</span>        <span class="c-comment"># cloud storage buckets</span><br>
+│   └── <span class="c-fn">github.py</span>     <span class="c-comment"># code + credential leaks</span><br>
+├── <span class="c-fn">processor.py</span>      <span class="c-comment"># dedup, enrich, merge</span><br>
+├── <span class="c-fn">reporter.py</span>       <span class="c-comment"># HTML + JSON generation</span><br>
+└── output/<br>
+    ├── <span class="c-str">acme_2024-11-01.html</span><br>
+    └── <span class="c-str">acme_2024-11-01.json</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 04 DATA SOURCES -->
+    <div class="prose-section" id="sources">
+      <h2><span class="section-num">04</span> Data Sources</h2>
+      <p>Each collector hits a different part of a target's passive footprint. Together they build a surprisingly complete picture with zero active probing.</p>
+
+      <div class="source-grid">
+        <div class="source-card">
+          <div class="source-card-header">
+            <div class="source-dot" style="background: var(--accent);"></div>
+            <span class="source-name">crt.sh</span>
+          </div>
+          <div class="source-desc">Certificate Transparency log search. Every SSL/TLS cert issued for a domain is logged publicly. Great for surfacing subdomains that never appear in DNS or search results.</div>
+          <div class="source-output">→ subdomains, wildcard certs, issuers</div>
+        </div>
+        <div class="source-card">
+          <div class="source-card-header">
+            <div class="source-dot" style="background: var(--red);"></div>
+            <span class="source-name">Shodan</span>
+          </div>
+          <div class="source-desc">Internet-wide scan aggregator. Queries Shodan's indexed data for IPs associated with the target — exposed ports, service banners, software versions, and vulnerabilities.</div>
+          <div class="source-output">→ open ports, banners, CVEs, ASN data</div>
+        </div>
+        <div class="source-card">
+          <div class="source-card-header">
+            <div class="source-dot" style="background: var(--amber);"></div>
+            <span class="source-name">GrayHatWarfare</span>
+          </div>
+          <div class="source-desc">Public cloud storage bucket search. Finds S3, Azure Blob, and GCS buckets associated with a target keyword — often contain sensitive files left publicly accessible.</div>
+          <div class="source-output">→ public buckets, exposed file listings</div>
+        </div>
+        <div class="source-card">
+          <div class="source-card-header">
+            <div class="source-dot" style="background: var(--green);"></div>
+            <span class="source-name">GitHub OSINT</span>
+          </div>
+          <div class="source-desc">Searches GitHub for repos, gists, and commit history referencing the target domain. Often surfaces leaked API keys, internal hostnames, and technology stack information.</div>
+          <div class="source-output">→ leaked secrets, internal hostnames, tech stack</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 05 IMPLEMENTATION -->
+    <div class="prose-section" id="implementation">
+      <h2><span class="section-num">05</span> Implementation</h2>
+
+      <h3>Main entrypoint</h3>
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-filename">recon.py</span>
+          <span class="code-lang">python</span>
+        </div>
+        <div class="code-body">
+<span class="c-kw">import</span> <span class="c-var">yaml</span>, <span class="c-var">json</span>, <span class="c-var">argparse</span><br>
+<span class="c-kw">from</span> <span class="c-var">datetime</span> <span class="c-kw">import</span> <span class="c-var">datetime</span><br>
+<span class="c-kw">from</span> <span class="c-var">collectors</span> <span class="c-kw">import</span> <span class="c-fn">crtsh</span>, <span class="c-fn">shodan</span>, <span class="c-fn">ghw</span>, <span class="c-fn">github</span><br>
+<span class="c-kw">from</span> <span class="c-var">processor</span> <span class="c-kw">import</span> <span class="c-fn">deduplicate</span>, <span class="c-fn">enrich</span><br>
+<span class="c-kw">from</span> <span class="c-var">reporter</span> <span class="c-kw">import</span> <span class="c-fn">generate_html</span><br>
+<br>
+<span class="c-kw">def</span> <span class="c-fn">run</span>(<span class="c-var">target</span>, <span class="c-var">config</span>):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-var">results</span> = {<span class="c-str">"target"</span>: <span class="c-var">target</span>, <span class="c-str">"timestamp"</span>: <span class="c-fn">datetime</span>.now().<span class="c-fn">isoformat</span>()}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-out">print</span>(<span class="c-str">f"[*] Running passive recon on: {target}"</span>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-var">results</span>[<span class="c-str">"subdomains"</span>] = <span class="c-fn">crtsh</span>.<span class="c-fn">collect</span>(<span class="c-var">target</span>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-var">results</span>[<span class="c-str">"services"</span>]  = <span class="c-fn">shodan</span>.<span class="c-fn">collect</span>(<span class="c-var">target</span>, <span class="c-var">config</span>[<span class="c-str">"shodan_key"</span>])<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-var">results</span>[<span class="c-str">"buckets"</span>]   = <span class="c-fn">ghw</span>.<span class="c-fn">collect</span>(<span class="c-var">target</span>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-var">results</span>[<span class="c-str">"github"</span>]    = <span class="c-fn">github</span>.<span class="c-fn">collect</span>(<span class="c-var">target</span>, <span class="c-var">config</span>[<span class="c-str">"gh_token"</span>])<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-var">results</span> = <span class="c-fn">deduplicate</span>(<span class="c-fn">enrich</span>(<span class="c-var">results</span>))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-fn">generate_html</span>(<span class="c-var">results</span>, <span class="c-var">target</span>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-success">print</span>(<span class="c-str">f"[+] Report saved → output/{target}_recon.html"</span>)
+        </div>
+      </div>
+
+      <h3>crt.sh collector</h3>
+      <p>The crt.sh collector queries the certificate transparency search API, parses the JSON response, and extracts unique subdomain names. It handles wildcard certs and deduplicates via a set before returning.</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-filename">collectors/crtsh.py</span>
+          <span class="code-lang">python</span>
+        </div>
+        <div class="code-body">
+<span class="c-kw">import</span> <span class="c-var">requests</span>, <span class="c-var">json</span><br>
+<br>
+<span class="c-kw">def</span> <span class="c-fn">collect</span>(<span class="c-var">domain</span>):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-var">url</span> = <span class="c-str">f"https://crt.sh/?q=%.{domain}&output=json"</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-var">resp</span> = <span class="c-var">requests</span>.<span class="c-fn">get</span>(<span class="c-var">url</span>, timeout=<span class="c-num">15</span>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-var">data</span> = <span class="c-var">resp</span>.<span class="c-fn">json</span>()<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-var">subdomains</span> = <span class="c-fn">set</span>()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-kw">for</span> <span class="c-var">entry</span> <span class="c-kw">in</span> <span class="c-var">data</span>:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-kw">for</span> <span class="c-var">name</span> <span class="c-kw">in</span> <span class="c-var">entry</span>[<span class="c-str">"name_value"</span>].<span class="c-fn">split</span>(<span class="c-str">"\n"</span>):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-var">name</span> = <span class="c-var">name</span>.<span class="c-fn">strip</span>().<span class="c-fn">lstrip</span>(<span class="c-str">"*."</span>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-kw">if</span> <span class="c-var">domain</span> <span class="c-kw">in</span> <span class="c-var">name</span>:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-var">subdomains</span>.<span class="c-fn">add</span>(<span class="c-var">name</span>)<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-success">print</span>(<span class="c-str">f"  [crt.sh] Found {len(subdomains)} subdomains"</span>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-kw">return</span> <span class="c-fn">sorted</span>(<span class="c-var">subdomains</span>)
+        </div>
+      </div>
+
+      <div class="callout info">
+        <span class="callout-icon">i NOTE</span>
+        <span>crt.sh occasionally rate-limits or times out under load. The collector wraps the request in a retry loop with exponential backoff. Three retries with 2s / 4s / 8s delays handles most transient failures.</span>
+      </div>
+
+      <h3>Shodan collector</h3>
+      <p>The Shodan collector resolves the target domain to its IPs, then queries the Shodan API for each. It extracts open ports, service banners, OS guesses, and any known CVEs from Shodan's vuln data.</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-filename">collectors/shodan.py (excerpt)</span>
+          <span class="code-lang">python</span>
+        </div>
+        <div class="code-body">
+<span class="c-kw">import</span> <span class="c-var">shodan</span>, <span class="c-var">socket</span><br>
+<br>
+<span class="c-kw">def</span> <span class="c-fn">collect</span>(<span class="c-var">domain</span>, <span class="c-var">api_key</span>):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-var">api</span> = <span class="c-var">shodan</span>.<span class="c-fn">Shodan</span>(<span class="c-var">api_key</span>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-var">ip</span> = <span class="c-var">socket</span>.<span class="c-fn">gethostbyname</span>(<span class="c-var">domain</span>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-var">host</span> = <span class="c-var">api</span>.<span class="c-fn">host</span>(<span class="c-var">ip</span>)<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-kw">return</span> {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-str">"ip"</span>:    <span class="c-var">host</span>[<span class="c-str">"ip_str"</span>],<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-str">"org"</span>:   <span class="c-var">host</span>.<span class="c-fn">get</span>(<span class="c-str">"org"</span>, <span class="c-str">"unknown"</span>),<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-str">"ports"</span>: <span class="c-var">host</span>[<span class="c-str">"ports"</span>],<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-str">"vulns"</span>: <span class="c-fn">list</span>(<span class="c-var">host</span>.<span class="c-fn">get</span>(<span class="c-str">"vulns"</span>, {}).<span class="c-fn">keys</span>()),<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-str">"data"</span>:  [{<span class="c-str">"port"</span>: s[<span class="c-str">"port"</span>], <span class="c-str">"banner"</span>: s[<span class="c-str">"data"</span>][:<span class="c-num">200</span>]}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="c-kw">for</span> <span class="c-var">s</span> <span class="c-kw">in</span> <span class="c-var">host</span>[<span class="c-str">"data"</span>]]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}
+        </div>
+      </div>
+    </div>
+
+    <!-- 06 HTML REPORT -->
+    <div class="prose-section" id="report">
+      <h2><span class="section-num">06</span> HTML Report</h2>
+      <p>The reporter generates a single self-contained HTML file — all CSS and data inlined, no external dependencies. This means the report works offline, can be emailed, and doesn't leak the target domain to third-party CDNs.</p>
+      <ul>
+        <li>Summary card at the top: total subdomains, open ports, exposed buckets, GitHub hits</li>
+        <li>Collapsible sections for each data source with sortable tables</li>
+        <li>Color-coded severity for Shodan vulns (critical → red, medium → amber)</li>
+        <li>Delta highlighting when comparing two runs — new findings shown in green, removed in red</li>
+        <li>Dark theme throughout, optimized for reading during late-night lab sessions</li>
+      </ul>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-filename">$ python recon.py --target acme.com</span>
+          <span class="code-lang">output</span>
+        </div>
+        <div class="code-body">
+<span class="c-out">[*] Running passive recon on: acme.com</span><br>
+<span class="c-out">  [crt.sh]  Querying certificate transparency logs...</span><br>
+<span class="c-success">  [crt.sh]  Found 42 subdomains</span><br>
+<span class="c-out">  [shodan]  Resolving acme.com → 104.21.x.x</span><br>
+<span class="c-success">  [shodan]  Found 7 open ports, 2 CVEs flagged</span><br>
+<span class="c-out">  [ghw]     Searching cloud storage buckets...</span><br>
+<span class="c-warn">  [ghw]     Found 3 public buckets (1 with file listing enabled)</span><br>
+<span class="c-out">  [github]  Searching repos and gists...</span><br>
+<span class="c-warn">  [github]  Found 4 results — 1 potential secret pattern matched</span><br>
+<span class="c-out">[*] Processing and deduplicating results...</span><br>
+<span class="c-success">[+] Report saved → output/acme_2024-11-01.html</span><br>
+<span class="c-success">[+] JSON saved  → output/acme_2024-11-01.json</span><br>
+<span class="c-out">[*] Completed in 14.3s</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 07 SCHEDULING -->
+    <div class="prose-section" id="scheduling">
+      <h2><span class="section-num">07</span> Scheduling with Cron</h2>
+      <p>The tool runs on a weekly cronjob on my Ubuntu homelab server. Each run saves a timestamped JSON file, and the reporter automatically diffs against the previous run to highlight new findings.</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-filename">crontab -e</span>
+          <span class="code-lang">cron</span>
+        </div>
+        <div class="code-body">
+<span class="c-comment"># Run passive recon every Sunday at 03:00</span><br>
+<span class="c-num">0 3 * * 0</span> <span class="c-var">cd /opt/passive-recon</span> &amp;&amp; <span class="c-fn">python recon.py</span> \<br>
+&nbsp;&nbsp;--target acme.com \<br>
+&nbsp;&nbsp;--config config.yaml \<br>
+&nbsp;&nbsp;--diff \<br>
+&nbsp;&nbsp;<span class="c-str">&gt;&gt; /var/log/recon.log 2&gt;&amp;1</span>
+        </div>
+      </div>
+
+      <div class="callout success">
+        <span class="callout-icon">✓ TIP</span>
+        <span>Store API keys in environment variables rather than config.yaml, and add config.yaml to .gitignore. Even "private" repos should never contain API keys — GitHub's secret scanning will catch it, but you'll still have rotated a key unnecessarily.</span>
+      </div>
+    </div>
+
+    <!-- 08 RESULTS -->
+    <div class="prose-section" id="results">
+      <h2><span class="section-num">08</span> Sample Results</h2>
+      <p>Running against a sample target in an authorized lab environment produced the following findings. Real engagement results are never published.</p>
+
+      <div class="results-block">
+        <div class="results-header">summary — lab target (authorized)</div>
+        <div class="results-body">
+          <div class="r-line"><span class="r-key">subdomains found</span><span class="r-val count">42</span></div>
+          <div class="r-line"><span class="r-key">unique IPs</span><span class="r-val count">6</span></div>
+          <div class="r-line"><span class="r-key">open ports (Shodan)</span><span class="r-val count">7 (22, 80, 443, 3306, 8080, 8443, 9200)</span></div>
+          <div class="r-line"><span class="r-key">CVEs flagged</span><span class="r-val warn">2 (CVE-2021-44228, CVE-2023-44487)</span></div>
+          <div class="r-line"><span class="r-key">public cloud buckets</span><span class="r-val warn">3 (1 with open listing)</span></div>
+          <div class="r-line"><span class="r-key">GitHub results</span><span class="r-val count">4 (1 secret pattern matched)</span></div>
+          <div class="r-line"><span class="r-key">interesting subdomains</span><span class="r-val warn">dev.*, staging.*, admin.*</span></div>
+          <div class="r-line"><span class="r-key">total runtime</span><span class="r-val good">14.3 seconds</span></div>
+          <div class="r-line"><span class="r-key">active packets sent</span><span class="r-val good">0 (fully passive)</span></div>
+        </div>
+      </div>
+
+      <p>The Elasticsearch port (9200) and the open S3 bucket were the highest-value findings. Port 9200 with no auth is a classic misconfiguration, and the bucket had a partial database export sitting in it — both findings you'd typically catch early in an engagement before moving to active scanning.</p>
+    </div>
+
+    <!-- 09 LESSONS -->
+    <div class="prose-section" id="lessons">
+      <h2><span class="section-num">09</span> Lessons Learned</h2>
+      <div class="lessons-grid">
+        <div class="lesson-card">
+          <span class="lesson-num">// 01</span>
+          <div class="lesson-title">Rate limiting is real</div>
+          <div class="lesson-text">crt.sh and GrayHatWarfare both rate-limit aggressively. Exponential backoff with jitter was essential — naive retries just hammer the rate limiter harder.</div>
+        </div>
+        <div class="lesson-card">
+          <span class="lesson-num">// 02</span>
+          <div class="lesson-title">Dedup earlier, not later</div>
+          <div class="lesson-text">Running deduplication per-collector rather than only at the merge step cuts API calls significantly. crt.sh returns a lot of duplicate entries from wildcard certs.</div>
+        </div>
+        <div class="lesson-card">
+          <span class="lesson-num">// 03</span>
+          <div class="lesson-title">GitHub OSINT is underrated</div>
+          <div class="lesson-text">The GitHub collector consistently surfaces the most interesting findings — internal hostnames, hardcoded credentials, and infrastructure details that don't show up anywhere else.</div>
+        </div>
+        <div class="lesson-card">
+          <span class="lesson-num">// 04</span>
+          <div class="lesson-title">Self-contained HTML matters</div>
+          <div class="lesson-text">Reports with external CDN dependencies leak the target domain in referer headers. Inlining all CSS eliminated this. An artifact of an engagement should never phone home.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 10 NEXT STEPS -->
+    <div class="prose-section" id="nextsteps">
+      <h2><span class="section-num">10</span> Next Steps</h2>
+      <ul>
+        <li>Add <strong>TheHarvester</strong> integration for email harvesting and additional subdomain sources</li>
+        <li>Build a <strong>Wayback Machine</strong> collector for historical endpoint discovery</li>
+        <li>Add <strong>email notifications</strong> on cron runs when new findings are detected</li>
+        <li>Integrate with <strong>Wazuh</strong> to log findings as security events for correlation</li>
+        <li>Expand GitHub collector to detect <strong>secret patterns</strong> using regex against commit history</li>
+        <li>Package as a Docker container for easy deployment on any machine</li>
+      </ul>
+
+      <div class="callout info">
+        <span class="callout-icon">↗ REPO</span>
+        <span>Source code available on GitHub at <strong>github.com/ZeroAuth-sys</strong>. Issues and PRs welcome — especially for new collector modules.</span>
+      </div>
+    </div>
+
+  </article>
+</div>
+
+<!-- PREV / NEXT -->
+<div class="writeup-nav">
+  <a href="#" class="nav-card prev">
+    <div class="nav-card-dir">← previous</div>
+    <div class="nav-card-title">NAS Hardening — UGREEN DXP4800+</div>
+  </a>
+  <a href="#" class="nav-card next">
+    <div class="nav-card-dir">next →</div>
+    <div class="nav-card-title">Nmap Firewall Evasion Labs</div>
+  </a>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-left">© 2025 Christian Castro — Security Professional</div>
+  <div class="footer-right">
+    <a href="index.html">home</a>
+    <a href="index.html#projects">projects</a>
+    <a href="https://github.com/ZeroAuth-sys">github</a>
+  </div>
+</footer>
+
+<script>
+  // Scroll reveal
+  const sections = document.querySelectorAll('.prose-section');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.08 });
+  sections.forEach(s => observer.observe(s));
+
+  // TOC active state
+  const tocLinks = document.querySelectorAll('.toc-list a');
+  const sectionEls = document.querySelectorAll('.prose-section');
+
+  window.addEventListener('scroll', () => {
+    let cur = '';
+    sectionEls.forEach(s => {
+      if (window.scrollY >= s.offsetTop - 140) cur = s.id;
+    });
+    tocLinks.forEach(a => {
+      a.classList.toggle('active', a.getAttribute('href') === '#' + cur);
+    });
+  });
+</script>
+</body>
+</html>
